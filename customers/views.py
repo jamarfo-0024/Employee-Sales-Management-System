@@ -2,6 +2,8 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Customer
 from .serializers import CustomerSerializer
+from employees.models import Employee
+
 
 class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
@@ -14,3 +16,12 @@ class CustomerViewSet(viewsets.ModelViewSet):
             return Customer.objects.all()
 
         return Customer.objects.filter(assigned_employee__user=user)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if user.role == 'ADMIN':
+            serializer.save()
+        else:
+            employee = Employee.objects.get(user=user)
+            serializer.save(assigned_employee=employee)
