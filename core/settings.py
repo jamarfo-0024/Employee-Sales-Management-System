@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'customers',
     'sales',
     'payments',
+    'activity.apps.ActivityConfig',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
