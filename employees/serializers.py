@@ -9,7 +9,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
     customers = CustomerSerializer(
         many=True,
         read_only=True,
-        source='customers'
     )
 
     sales = SaleSerializer(
