@@ -242,7 +242,7 @@ Authorization: Bearer ACCESS_TOKEN
 
 ## Author
 
-Dr Marfo
+Dr. Jude Asante Marfo(MD)
 
 ---
 
