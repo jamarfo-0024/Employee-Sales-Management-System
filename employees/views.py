@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from django.db.models import Sum
 
@@ -31,6 +32,10 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         return queryset.filter(user=user)
 
 
+# ==============================
+# EMPLOYEE DASHBOARD
+# ==============================
+
 class EmployeeDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -38,11 +43,10 @@ class EmployeeDashboardView(APIView):
         user = request.user
 
         if user.role != 'EMPLOYEE':
-            return Response({"detail": "Not authorized"}, status=403)
+            raise PermissionDenied("Not authorized")
 
         employee = Employee.objects.select_related('user').get(user=user)
 
-        # -------- Stats --------
         total_sales = employee.sales.count()
 
         total_revenue = employee.sales.aggregate(
@@ -58,7 +62,6 @@ class EmployeeDashboardView(APIView):
             status='UNPAID'
         ).count()
 
-        # -------- Recent Sales (Last 5) --------
         recent_sales = employee.sales.order_by('-created_at')[:5].values(
             'id',
             'amount',
@@ -66,7 +69,6 @@ class EmployeeDashboardView(APIView):
             'created_at'
         )
 
-        # -------- Recent Logins (Last 5) --------
         recent_logins = LoginLog.objects.filter(
             employee=employee
         ).order_by('-login_time')[:5].values(
@@ -83,6 +85,43 @@ class EmployeeDashboardView(APIView):
             },
             "recent_sales": list(recent_sales),
             "recent_logins": list(recent_logins),
+        }
+
+        return Response(data)
+
+
+# ==============================
+# ADMIN DASHBOARD SUMMARY
+# ==============================
+
+class AdminDashboardSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if user.role != 'ADMIN':
+            raise PermissionDenied("Not authorized")
+
+        total_employees = Employee.objects.count()
+
+        total_revenue = Sale.objects.aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
+        total_commission = Sale.objects.aggregate(
+            total=Sum('commission')
+        )['total'] or 0
+
+        unpaid_payments = Payment.objects.filter(
+            status='UNPAID'
+        ).count()
+
+        data = {
+            "total_employees": total_employees,
+            "total_revenue": total_revenue,
+            "total_commission": total_commission,
+            "unpaid_payments": unpaid_payments,
         }
 
         return Response(data)
